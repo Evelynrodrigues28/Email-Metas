@@ -185,6 +185,166 @@ Prioridade de seleção:
 | Atualizar regionais | Edite `gestores_regionais_cc.xlsx` |
 | Mudar assinatura | Edite `.secrets_config.json` |
 
+## ⚡ Configurando o Power Automate
+
+O sistema envia e-mails através de um Flow HTTP no Power Automate (Microsoft 365). Siga os passos abaixo para configurar:
+
+### Passo 1: Criar o Flow
+
+1. Acesse [Power Automate](https://make.powerautomate.com)
+2. Clique em **Criar** > **Fluxo de nuvem instantâneo**
+3. Selecione o gatilho: **Quando uma solicitação HTTP é recebida**
+
+### Passo 2: Configurar o Gatilho HTTP
+
+No gatilho "Quando uma solicitação HTTP é recebida", cole este esquema JSON:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "to": { "type": "string" },
+    "cc": { "type": "string" },
+    "subject": { "type": "string" },
+    "body": { "type": "string" }
+  },
+  "required": ["to", "subject", "body"]
+}
+```
+
+### Passo 3: Adicionar Ação de Envio
+
+1. Clique em **+ Nova etapa**
+2. Busque: **Office 365 Outlook — Enviar um email (V2)**
+3. Configure os campos:
+
+| Campo | Valor (conteúdo dinâmico) |
+| --- | --- |
+| Para | `to` |
+| CC | `cc` |
+| Assunto | `subject` |
+| Corpo | `body` |
+| É HTML | **Sim** |
+
+> 💡 Se preferir usar uma conta compartilhada (shared mailbox), use a ação **"Enviar um email de uma caixa de correio compartilhada (V2)"** e preencha o campo "Caixa de correio original" com o endereço.
+
+### Passo 4: (Opcional) Adicionar Condição para CC
+
+Como o campo CC pode vir vazio, adicione uma condição:
+
+```
+Se   cc   é diferente de   (vazio)
+  → Enviar email COM cc
+Senão
+  → Enviar email SEM cc
+```
+
+Ou simplesmente ignore — o Outlook aceita CC vazio sem erro.
+
+### Passo 5: Salvar e Copiar a URL
+
+1. Clique em **Salvar**
+2. Volte ao gatilho HTTP — a **URL do HTTP POST** será gerada automaticamente
+3. Copie essa URL (formato: `https://prod-XX.westus.logic.azure.com:443/workflows/...`)
+4. Cole no arquivo `.secrets_config.json` no campo `power_automate_url`
+
+### Passo 6: Testar Manualmente
+
+Para validar o flow antes de usar no notebook, envie um POST manual:
+
+```bash
+curl -X POST "SUA_URL_AQUI" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "seu.email@empresa.com",
+    "cc": "",
+    "subject": "Teste Power Automate",
+    "body": "<h1>Funcionou!</h1><p>Integra\u00e7\u00e3o OK.</p>"
+  }'
+```
+
+Se receber status `202 Accepted`, o flow está pronto.
+
+### Diagrama do Flow
+
+```
+┌──────────────────────────────────────────────┐
+│  Gatilho: Solicitação HTTP recebida        │
+│  Método: POST                              │
+│  Payload: { to, cc, subject, body }       │
+└───────────────────────┬──────────────────────┘
+                        │
+                        ▼
+┌──────────────────────────────────────────────┐
+│  (Opcional) Condição: CC não é vazio?     │
+└───────────────────────┬──────────────────────┘
+                        │
+                        ▼
+┌──────────────────────────────────────────────┐
+│  Ação: Enviar email (V2) - Outlook 365    │
+│  Para: to | CC: cc                        │
+│  Assunto: subject                         │
+│  Corpo: body (É HTML = Sim)               │
+└──────────────────────────────────────────────┘
+```
+
+### Limites e Considerações
+
+| Item | Limite |
+| --- | --- |
+| Chamadas/minuto (plano gratuito) | 100 |
+| Chamadas/minuto (plano premium) | 600 |
+| Tamanho máx. do body | 100 MB (na prática, e-mails HTML ficam em ~50-200 KB) |
+| Timeout HTTP | 120 segundos |
+
+O notebook já trata erros 429 (rate limit), 502 e 503 com retry automático e delays progressivos.
+
+---
+
+## 🧪 Como Testar (Dados Fictícios)
+
+O repositório inclui um script que gera todos os dados necessários para teste, sem precisar de nenhum arquivo real.
+
+### Passo 1: Executar o gerador de dados
+
+```
+1. Abra o notebook `gerar_dados_teste.py` no Databricks
+2. Execute todas as células
+```
+
+Isso cria automaticamente:
+- `Entrada/apuracao_Q2_teste.xlsx` — planilha com 5 associados e 6 indicadores fictícios
+- `gestores_regionais_cc.xlsx` — mapeamento de 5 regionais com e-mails de exemplo
+- `.secrets_config.json` — configuração com dados placeholder
+
+### Passo 2: Executar o notebook principal
+
+Abra `email_metas_apuracao_variavel.py` e configure os widgets:
+
+| Widget | Valor |
+| --- | --- |
+| Período | **P04** |
+| Modo de Envio | **TESTE** |
+| E-mail de Teste | **seu-email@real.com** |
+| Data Retorno | Qualquer data futura |
+| Mês Pagamento | Qualquer mês |
+
+### Passo 3: Validar
+
+- **Sem Power Automate**: O Preview funciona normalmente. Você verá o e-mail HTML completo com dados fictícios.
+- **Com Power Automate**: Substitua a `power_automate_url` no `.secrets_config.json` pela URL real do seu flow. O e-mail será enviado ao endereço de teste.
+
+### Associados Fictícios Gerados
+
+| Nome | E-mail | Regional |
+| --- | --- | --- |
+| Ana Silva | ana.silva@exemplo.com | SUDESTE |
+| Carlos Souza | carlos.souza@exemplo.com | SUL |
+| Maria Santos | maria.santos@exemplo.com | NORTE |
+| Pedro Oliveira | pedro.oliveira@exemplo.com | NORDESTE |
+| Julia Costa | julia.costa@exemplo.com | CENTRO-OESTE |
+
 ## 📜 Licença
 
 Projeto interno — uso restrito à organização.
+

@@ -1,6 +1,6 @@
 # Email Metas Apuracao Variavel
 
-Sistema automatizado para geracao e envio de e-mails individuais de apuracao de remuneracao variavel.
+Sistema automatizado para geracao e envio de e-mails individuais de apuracao de remuneracao variavel, com integracao ao Power Automate.
 
 Funciona **localmente** (VS Code, terminal, Jupyter) ou no **Databricks**.
 
@@ -10,7 +10,7 @@ Funciona **localmente** (VS Code, terminal, Jupyter) ou no **Databricks**.
 
 - Leitura de planilhas Excel (.xlsb/.xlsx) com dados de apuracao
 - Geracao de e-mails HTML personalizados por associado
-- Preview do e-mail no navegador antes do envio
+- Preview do e-mail no navegador
 - Envio em lote via Power Automate (Microsoft 365)
 - Suporte a periodos mensais (P01-P13) e trimestrais (Quarter)
 - Copia automatica para gestores regionais
@@ -21,8 +21,8 @@ Funciona **localmente** (VS Code, terminal, Jupyter) ou no **Databricks**.
 
 ```
 +----------------------------+
-|   Script Python            |
-|   (local ou Databricks)    |
+|   email_metas_apuracao     |
+|   _variavel.py             |
 +-------------+--------------+
               | HTTP POST (JSON)
               v
@@ -40,26 +40,20 @@ Funciona **localmente** (VS Code, terminal, Jupyter) ou no **Databricks**.
 ```
 email-metas-apuracao-variavel/
 |
-|-- email_metas_local_v2.py          # Script principal (roda local - VS Code/terminal)
-|-- email_metas_apuracao_variavel.py # Versao Databricks (com widgets/displayHTML)
-|-- gerar_dados_teste_local.py       # Gera dados ficticios para teste (roda local)
-|-- gerar_dados_teste.py             # Gera dados ficticios (versao Databricks)
-|-- template_email.html              # Template HTML do corpo do e-mail
-|-- requirements.txt                 # Dependencias Python
-|-- .secrets_config.json.example     # Modelo de configuracao (sem dados reais)
-|-- gestores_regionais_cc_exemplo.csv# Exemplo do mapeamento Regional -> Email CC
-|-- .gitignore                       # Protecao de dados sensiveis
-|-- README.md                        # Este arquivo
-|-- Entrada/                         # Pasta para planilhas Excel (NAO versionar)
-|   +-- <arquivo>.xlsb ou .xlsx
-+-- Saida/                           # Gerada automaticamente (NAO versionar)
-    +-- saida.json
-    +-- preview.html
+|-- .secrets_config.json              # Configuracao (preencha com seus dados)
+|-- README.md                         # Este arquivo
+|-- email_metas_apuracao_variavel.py  # Script principal
+|-- gerar_dados_teste.py              # Gera dados ficticios para teste
+|-- gestores_regionais_cc.xlsx        # Mapeamento Regional -> Email CC
+|-- gestores_regionais_cc_exemplo.csv # Exemplo do mapeamento (referencia)
+|-- preview.html                      # Preview do ultimo e-mail gerado
+|-- requirements.txt                  # Dependencias Python
+|-- template_email.html               # Template HTML do corpo do e-mail
 ```
 
 ---
 
-## Inicio Rapido (Local - VS Code / Terminal)
+## Inicio Rapido (VS Code / Terminal)
 
 ### 1. Clone o repositorio
 
@@ -89,7 +83,7 @@ pip install pyxlsb openpyxl pandas requests numpy
 ### 4. Gere dados ficticios para teste
 
 ```bash
-python gerar_dados_teste_local.py
+python gerar_dados_teste.py
 ```
 
 Isso cria:
@@ -100,75 +94,50 @@ Isso cria:
 ### 5. Execute no modo preview
 
 ```bash
-python email_metas_local_v2.py --preview
+python email_metas_apuracao_variavel.py --preview
 ```
 
 ### 6. Veja o resultado
 
-Abra `Saida/preview.html` no navegador para ver o e-mail gerado.
+Abra `preview.html` no navegador para ver o e-mail gerado.
 
 ---
 
-## Uso Completo (Linha de Comando)
+## Parametros de Linha de Comando
 
 ```bash
-python email_metas_local_v2.py [opcoes]
+python email_metas_apuracao_variavel.py [opcoes]
 ```
 
-### Parametros disponiveis:
-
-| Parametro        | Descricao                          | Default             |
-| ---------------- | ---------------------------------- | ------------------- |
-| --periodo        | Periodo da apuracao (P01 a P13)    | P04                 |
-| --modo           | teste ou producao                  | teste               |
+| Parametro        | Descricao                          | Default               |
+| ---------------- | ---------------------------------- | --------------------- |
+| --periodo        | Periodo da apuracao (P01 a P13)    | P04                   |
+| --modo           | teste ou producao                  | teste                 |
 | --email-teste    | Destinatario no modo teste         | seu.email@empresa.com |
-| --data-retorno   | Prazo para contestacoes            | 20/01/2025          |
-| --mes-pagamento  | Mes de referencia                  | fevereiro           |
-| --associados     | Filtrar por nomes (virgula)        | todos               |
-| --preview        | Apenas gera HTML, nao envia        | false               |
+| --data-retorno   | Prazo para contestacoes            | 20/01/2025            |
+| --mes-pagamento  | Mes de referencia                  | fevereiro             |
+| --associados     | Filtrar por nomes (virgula)        | todos                 |
+| --preview        | Apenas gera HTML, nao envia        | false                 |
 
 ### Exemplos:
 
 ```bash
-# Apenas preview (nao envia)
-python email_metas_local_v2.py --preview
+# Apenas preview
+python email_metas_apuracao_variavel.py --preview
 
 # Teste: envia para seu e-mail
-python email_metas_local_v2.py --email-teste meuemail@gmail.com
+python email_metas_apuracao_variavel.py --email-teste meuemail@gmail.com
 
 # Producao: envia para todos
-python email_metas_local_v2.py --modo producao --periodo P04
+python email_metas_apuracao_variavel.py --modo producao --periodo P04
 
-# Filtrar associados especificos
-python email_metas_local_v2.py --preview --associados "Ana Silva,Carlos Souza"
+# Filtrar associados
+python email_metas_apuracao_variavel.py --preview --associados "Ana Silva,Carlos Souza"
 ```
-
-### Saidas geradas:
-
-- `Saida/saida.json` - JSON com todos os e-mails gerados
-- `Saida/preview.html` - Abra no navegador para visualizar
-
----
-
-## Uso no Databricks
-
-Se preferir usar no Databricks:
-
-1. Importe `email_metas_apuracao_variavel.py` como notebook
-2. Execute `gerar_dados_teste.py` para gerar dados de teste
-3. Configure os widgets na interface:
-   - Periodo: P04
-   - Modo de Envio: TESTE
-   - E-mail de Teste: seu e-mail
-4. Execute celula por celula
-5. Use a aba Preview do dashboard interativo para conferir
-6. Use a aba Enviar para disparar os e-mails
 
 ---
 
 ## Configurando o Power Automate
-
-O envio de e-mails funciona via Power Automate (Microsoft 365). Siga os passos:
 
 ### Passo 1: Criar o Flow
 
@@ -178,7 +147,7 @@ O envio de e-mails funciona via Power Automate (Microsoft 365). Siga os passos:
 
 ### Passo 2: Configurar o Gatilho HTTP
 
-No gatilho, cole este esquema JSON:
+Cole este esquema JSON no gatilho:
 
 ```json
 {
@@ -210,13 +179,11 @@ No gatilho, cole este esquema JSON:
 ### Passo 4: Salvar e Copiar a URL
 
 1. Salve o flow
-2. Volte ao gatilho HTTP - a URL sera gerada
+2. Volte ao gatilho HTTP - a URL sera gerada automaticamente
 3. Copie a URL (formato: `https://prod-XX.westus.logic.azure.com:443/workflows/...`)
 4. Cole no `.secrets_config.json` no campo `power_automate_url`
 
 ### Passo 5: Testar o Flow
-
-Voce pode testar com curl:
 
 ```bash
 curl -X POST "SUA_URL_AQUI" \
@@ -244,7 +211,7 @@ Se retornar status 202, esta pronto.
 +----------------------------------------------+
 ```
 
-### Limites
+### Limites do Power Automate
 
 | Item                               | Limite     |
 | ---------------------------------- | ---------- |
@@ -257,17 +224,20 @@ O script ja trata erros 429 (rate limit), 502 e 503 com retry automatico.
 
 ---
 
-## Configuracao
+## Configuracao do .secrets_config.json
 
-### .secrets_config.json
+Preencha o arquivo com seus dados:
 
-Copie o exemplo e preencha:
-
-```bash
-cp .secrets_config.json.example .secrets_config.json
+```json
+{
+  "power_automate_url": "SUA_URL_DO_FLOW_AQUI",
+  "assinatura_nome": "Seu Nome",
+  "assinatura_cargo": "Seu Cargo",
+  "assinatura_email": "seu@email.com",
+  "email_gestor_excecoes": "gestor@email.com",
+  "nome_gestor_excecoes": "Nome do Gestor"
+}
 ```
-
-Campos:
 
 | Campo                  | Descricao                              |
 | ---------------------- | -------------------------------------- |
@@ -276,26 +246,13 @@ Campos:
 | assinatura_cargo       | Cargo/departamento                     |
 | assinatura_email       | E-mail na assinatura                   |
 | email_gestor_excecoes  | E-mail para contestacoes               |
-| nome_gestor_excecoes   | Nome do gestor de excecoes             |
-
-### gestores_regionais_cc.xlsx
-
-Crie baseado no CSV de exemplo (`gestores_regionais_cc_exemplo.csv`).
-Duas colunas: `Regional` e `Email_CC`.
-
-### Planilha de Apuracao (Entrada/)
-
-Requisitos do arquivo Excel:
-- Formato: `.xlsb` ou `.xlsx`
-- Aba: `RESULTADO VARIAVEL` (com acento: VARIAVEL)
-- Colunas: Associado, Email, Regional, Indicador (x2), metricas
-- Periodos identificados por P01-P13 no header
+| nome_gestor_excecoes   | Nome do gestor                         |
 
 ---
 
 ## Teste com Dados Ficticios
 
-O script `gerar_dados_teste_local.py` cria automaticamente:
+Execute `python gerar_dados_teste.py` para criar dados automaticamente:
 
 | Associado       | E-mail                        | Regional      |
 | --------------- | ----------------------------- | ------------- |
@@ -304,8 +261,6 @@ O script `gerar_dados_teste_local.py` cria automaticamente:
 | Maria Santos    | maria.santos@exemplo.com      | NORTE         |
 | Pedro Oliveira  | pedro.oliveira@exemplo.com    | NORDESTE      |
 | Julia Costa     | julia.costa@exemplo.com       | CENTRO-OESTE  |
-
-Indicadores ficticios de Vendas (GSV) e Execucao (Sales Strike).
 
 ---
 
@@ -333,8 +288,8 @@ Cada e-mail contem:
 
 - **Modo TESTE**: Todos os e-mails vao apenas para o endereco de teste
 - **Modo PRODUCAO**: Envia para destinatarios reais + CC gestor regional
-- **Secrets**: Dados sensiveis em `.secrets_config.json` (protegido pelo .gitignore)
-- **Retry**: 3 tentativas com delays progressivos (5s, 10s) em erros HTTP
+- **Secrets**: Dados sensiveis em `.secrets_config.json`
+- **Retry**: 3 tentativas com delays progressivos em erros HTTP
 
 ---
 
@@ -353,10 +308,6 @@ Cada e-mail contem:
 
 - Python 3.9+
 - Bibliotecas: pyxlsb, openpyxl, pandas, requests, numpy
-- Power Automate (para envio real de e-mails)
+- Power Automate (para envio real)
 
----
 
-## Licenca
-
-Projeto interno - uso restrito a organizacao.

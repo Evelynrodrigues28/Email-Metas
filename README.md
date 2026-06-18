@@ -1,203 +1,184 @@
-# 📧 Email Metas Apuração Variável
+# Email Metas Apuracao Variavel
 
-Sistema automatizado para geração e envio de e-mails individuais de apuração de remuneração variável, desenvolvido em Databricks Notebooks com integração ao Power Automate.
+Sistema automatizado para geracao e envio de e-mails individuais de apuracao de remuneracao variavel.
 
-## 📋 Visão Geral
+Funciona **localmente** (VS Code, terminal, Jupyter) ou no **Databricks**.
 
-Este projeto automatiza o processo de comunicação dos resultados de remuneração variável para associados, incluindo:
+---
 
-- Leitura de planilhas Excel (.xlsb/.xlsx) com dados de apuração
-- Geração de e-mails HTML personalizados por associado
-- Preview interativo no notebook antes do envio
+## Visao Geral
+
+- Leitura de planilhas Excel (.xlsb/.xlsx) com dados de apuracao
+- Geracao de e-mails HTML personalizados por associado
+- Preview do e-mail no navegador antes do envio
 - Envio em lote via Power Automate (Microsoft 365)
-- Suporte a períodos mensais (P01–P13) e trimestrais (Quarter)
-- Cópia automática para gestores regionais
+- Suporte a periodos mensais (P01-P13) e trimestrais (Quarter)
+- Copia automatica para gestores regionais
 
-## 🏗️ Arquitetura
+---
+
+## Arquitetura
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Databricks Notebook                    │
-├─────────────────────────────────────────────────────────┤
-│  1. Widgets (parâmetros de execução)                     │
-│  2. Leitura do Excel (.xlsb) com dados de apuração       │
-│  3. Processamento e formatação dos dados                 │
-│  4. Geração de HTML personalizado por associado          │
-│  5. Dashboard interativo (Preview + Envio)               │
-└────────────────────────┬────────────────────────────────┘
-                         │ HTTP POST (JSON comprimido)
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│              Power Automate (Microsoft 365)               │
-│         Envio de e-mail via Outlook/Exchange              │
-└─────────────────────────────────────────────────────────┘
++----------------------------+
+|   Script Python            |
+|   (local ou Databricks)    |
++-------------+--------------+
+              | HTTP POST (JSON)
+              v
++----------------------------+
+|   Power Automate           |
+|   (Microsoft 365)          |
+|   Envio via Outlook        |
++----------------------------+
 ```
 
-## 📁 Estrutura de Pastas
+---
+
+## Estrutura de Arquivos
 
 ```
 email-metas-apuracao-variavel/
-├── email_metas_apuracao_variavel.py   # Notebook principal (Databricks)
-├── template_email.html                 # Template HTML do corpo do e-mail
-├── gestores_regionais_cc_exemplo.csv   # Exemplo: mapeamento Regional → Email CC
-├── .secrets_config.json.example        # Exemplo: configurações sensíveis
-├── requirements.txt                    # Dependências Python
-├── .gitignore                          # Arquivos ignorados pelo Git
-├── README.md                           # Este arquivo
-├── Entrada/                            # Pasta para upload dos arquivos Excel
-│   └── <arquivo_apuracao>.xlsb         # Planilha de resultados (NÃO versionar)
-└── Saida/                              # Pasta de saída gerada automaticamente
-    └── saida.json                      # JSON com e-mails gerados (NÃO versionar)
+|
+|-- email_metas_local_v2.py          # Script principal (roda local - VS Code/terminal)
+|-- email_metas_apuracao_variavel.py # Versao Databricks (com widgets/displayHTML)
+|-- gerar_dados_teste_local.py       # Gera dados ficticios para teste (roda local)
+|-- gerar_dados_teste.py             # Gera dados ficticios (versao Databricks)
+|-- template_email.html              # Template HTML do corpo do e-mail
+|-- requirements.txt                 # Dependencias Python
+|-- .secrets_config.json.example     # Modelo de configuracao (sem dados reais)
+|-- gestores_regionais_cc_exemplo.csv# Exemplo do mapeamento Regional -> Email CC
+|-- .gitignore                       # Protecao de dados sensiveis
+|-- README.md                        # Este arquivo
+|-- Entrada/                         # Pasta para planilhas Excel (NAO versionar)
+|   +-- <arquivo>.xlsb ou .xlsx
++-- Saida/                           # Gerada automaticamente (NAO versionar)
+    +-- saida.json
+    +-- preview.html
 ```
 
-## ⚙️ Pré-requisitos
+---
 
-- **Databricks Runtime** 13.x ou superior
-- **Bibliotecas Python**: `pyxlsb`, `openpyxl` (instaladas automaticamente via `%pip`)
-- **Power Automate**: Flow HTTP configurado para receber e enviar e-mails
-- **Planilha Excel**: Arquivo `.xlsb` com aba `RESULTADO VARIÁVEL`
+## Inicio Rapido (Local - VS Code / Terminal)
 
-## 🔧 Configuração
-
-### 1. Arquivo de Segredos
-
-Copie `.secrets_config.json.example` para `.secrets_config.json` e preencha com seus dados:
+### 1. Clone o repositorio
 
 ```bash
-cp .secrets_config.json.example .secrets_config.json
+git clone https://github.com/seu-usuario/email-metas-apuracao-variavel.git
+cd email-metas-apuracao-variavel
 ```
 
-Campos:
-- `power_automate_url` — URL do flow HTTP do Power Automate
-- `assinatura_nome` — Nome exibido na assinatura do e-mail
-- `assinatura_cargo` — Cargo/departamento na assinatura
-- `assinatura_email` — E-mail na assinatura
-- `email_gestor_excecoes` — E-mail do gestor para contestações
-- `nome_gestor_excecoes` — Nome do gestor de exceções
+### 2. Crie um ambiente virtual
 
-> ⚠️ **IMPORTANTE**: Este arquivo contém dados sensíveis. Nunca versione no Git.
+```bash
+python -m venv venv
 
-### 2. Mapeamento de Gestores Regionais
+# Windows (PowerShell):
+venv\Scripts\activate
 
-Crie `gestores_regionais_cc.xlsx` (formato Excel) baseado no exemplo CSV fornecido.
-Duas colunas: `Regional` e `Email_CC`.
+# Mac/Linux:
+source venv/bin/activate
+```
 
-### 3. Template HTML
+### 3. Instale as dependencias
 
-O arquivo `template_email.html` contém o layout do e-mail com placeholders:
+```bash
+pip install pyxlsb openpyxl pandas requests numpy
+```
 
-| Placeholder | Descrição |
-| --- | --- |
-| `{nome}` | Primeiro nome do associado |
-| `{periodo}` | Período atual (ex: P04) |
-| `{linhas}` | Linhas da tabela de resultados |
-| `{quarter_colgroup}` | Colunas do quarter (quando aplicável) |
-| `{quarter_row1}` a `{quarter_row4}` | Headers do quarter |
+### 4. Gere dados ficticios para teste
 
-### 4. Planilha de Apuração
+```bash
+python gerar_dados_teste_local.py
+```
 
-Coloque o arquivo `.xlsb` na pasta `Entrada/`. Requisitos:
-- Aba: `RESULTADO VARIÁVEL`
-- Colunas: `Associado`, `Email`, `Regional`, `Indicador` (x2), métricas
-- Períodos identificados por `P01`–`P13` no header
+Isso cria:
+- `Entrada/apuracao_Q2_teste.xlsx` (planilha com 5 associados ficticios)
+- `gestores_regionais_cc.xlsx` (mapeamento de regionais)
+- `.secrets_config.json` (configuracao com valores de exemplo)
 
-## 🚀 Como Usar
+### 5. Execute no modo preview
 
-### Passo 1: Configurar Widgets
+```bash
+python email_metas_local_v2.py --preview
+```
 
-| Widget | Descrição | Exemplo |
-| --- | --- | --- |
-| 1. Período | Período da apuração | P04 |
-| 2. Modo de Envio | TESTE ou PRODUCAO | TESTE |
-| 3. E-mail de Teste | Destinatário no modo teste | usuario@empresa.com |
-| 4. Associados | Selecione quem receberá o e-mail | (multiselect) |
-| 5. Data Retorno | Prazo para contestações | 20/01/2025 |
-| 6. Mês Pagamento | Mês de referência do pagamento | fevereiro |
+### 6. Veja o resultado
 
-### Passo 2: Upload do Arquivo
+Abra `Saida/preview.html` no navegador para ver o e-mail gerado.
 
-Coloque o `.xlsb` na pasta `Entrada/`. O notebook detecta automaticamente o arquivo pelo período/quarter.
+---
 
-### Passo 3: Processamento
+## Uso Completo (Linha de Comando)
 
-Execute a célula de processamento. Ela:
-1. Localiza o arquivo correto baseado no período/quarter
-2. Lê a aba `RESULTADO VARIÁVEL`
-3. Identifica headers e colunas de métricas
-4. Popula o widget de associados
+```bash
+python email_metas_local_v2.py [opcoes]
+```
 
-### Passo 4: Preview e Envio
+### Parametros disponiveis:
 
-O dashboard interativo oferece:
-- **Aba Preview**: Visualização do e-mail renderizado
-- **Aba Enviar**: Envio em lote com barra de progresso e retry automático
+| Parametro        | Descricao                          | Default             |
+| ---------------- | ---------------------------------- | ------------------- |
+| --periodo        | Periodo da apuracao (P01 a P13)    | P04                 |
+| --modo           | teste ou producao                  | teste               |
+| --email-teste    | Destinatario no modo teste         | seu.email@empresa.com |
+| --data-retorno   | Prazo para contestacoes            | 20/01/2025          |
+| --mes-pagamento  | Mes de referencia                  | fevereiro           |
+| --associados     | Filtrar por nomes (virgula)        | todos               |
+| --preview        | Apenas gera HTML, nao envia        | false               |
 
-## 📊 Estrutura do E-mail
+### Exemplos:
 
-Cada e-mail contém:
+```bash
+# Apenas preview (nao envia)
+python email_metas_local_v2.py --preview
 
-1. **Tabela de resultados** com colunas:
-   - Indicador (categoria + detalhamento)
-   - Actual / Meta / % Atingimento
-   - Recuperação (Vendas, Marca, Regional)
-   - % Variável (resultado final)
-2. **Seção Quarter** (apenas em P03, P06, P09, P13):
-   - GSV Actual / FCST / Realizado × Plano
-   - Recuperações trimestrais
-3. **Rodapé** com prazo de contestação e assinatura
+# Teste: envia para seu e-mail
+python email_metas_local_v2.py --email-teste meuemail@gmail.com
 
-## 🔒 Segurança
+# Producao: envia para todos
+python email_metas_local_v2.py --modo producao --periodo P04
 
-- **Modo TESTE**: E-mails direcionados ao endereço de teste
-- **Modo PRODUÇÃO**: E-mails aos destinatários reais + CC gestor regional
-- **Compressão**: Payloads comprimidos (zlib + Base64) antes do envio
-- **Segredos**: Dados sensíveis em `.secrets_config.json` (não versionado)
+# Filtrar associados especificos
+python email_metas_local_v2.py --preview --associados "Ana Silva,Carlos Souza"
+```
 
-## 🔄 Fluxo de Envio
+### Saidas geradas:
 
-1. Payloads JSON comprimidos com `zlib` e codificados em Base64
-2. JavaScript no dashboard decodifica no browser
-3. Envio sequencial via `fetch()` ao Power Automate
-4. Retry automático (3 tentativas) em erros 502/503/429
-5. Delays progressivos entre retries (5s, 10s)
-6. Botão "Parar" para interromper envio
+- `Saida/saida.json` - JSON com todos os e-mails gerados
+- `Saida/preview.html` - Abra no navegador para visualizar
 
-## 📝 Detecção Automática de Arquivo
+---
 
-Prioridade de seleção:
-1. Nome do arquivo contém o quarter (Q1, Q2, Q3, Q4)
-2. Conteúdo da aba contém o período solicitado
-3. Arquivo mais recente (fallback)
+## Uso no Databricks
 
-## 🎨 Formatação Visual
+Se preferir usar no Databricks:
 
-- **Linhas em negrito**: Indicadores totalizadores
-- **Célula de resultado**: Fundo cinza (#595959) + texto dourado (#e5a913)
-- **Headers Quarter**: Amarelo (#FFCC5B) para métricas, verde (#00B050) para pagamento
-- **Faixa azul**: Header principal (#000050)
+1. Importe `email_metas_apuracao_variavel.py` como notebook
+2. Execute `gerar_dados_teste.py` para gerar dados de teste
+3. Configure os widgets na interface:
+   - Periodo: P04
+   - Modo de Envio: TESTE
+   - E-mail de Teste: seu e-mail
+4. Execute celula por celula
+5. Use a aba Preview do dashboard interativo para conferir
+6. Use a aba Enviar para disparar os e-mails
 
-## 🛠️ Manutenção
+---
 
-| Tarefa | Como fazer |
-| --- | --- |
-| Novo período | Automático — basta ter os dados na planilha |
-| Alterar template | Edite `template_email.html` |
-| Atualizar regionais | Edite `gestores_regionais_cc.xlsx` |
-| Mudar assinatura | Edite `.secrets_config.json` |
+## Configurando o Power Automate
 
-## ⚡ Configurando o Power Automate
-
-O sistema envia e-mails através de um Flow HTTP no Power Automate (Microsoft 365). Siga os passos abaixo para configurar:
+O envio de e-mails funciona via Power Automate (Microsoft 365). Siga os passos:
 
 ### Passo 1: Criar o Flow
 
-1. Acesse [Power Automate](https://make.powerautomate.com)
-2. Clique em **Criar** > **Fluxo de nuvem instantâneo**
-3. Selecione o gatilho: **Quando uma solicitação HTTP é recebida**
+1. Acesse https://make.powerautomate.com
+2. Clique em **Criar** > **Fluxo de nuvem instantaneo**
+3. Selecione o gatilho: **Quando uma solicitacao HTTP e recebida**
 
 ### Passo 2: Configurar o Gatilho HTTP
 
-No gatilho "Quando uma solicitação HTTP é recebida", cole este esquema JSON:
+No gatilho, cole este esquema JSON:
 
 ```json
 {
@@ -212,139 +193,170 @@ No gatilho "Quando uma solicitação HTTP é recebida", cole este esquema JSON:
 }
 ```
 
-### Passo 3: Adicionar Ação de Envio
+### Passo 3: Adicionar Acao de Envio
 
 1. Clique em **+ Nova etapa**
-2. Busque: **Office 365 Outlook — Enviar um email (V2)**
-3. Configure os campos:
+2. Busque: **Office 365 Outlook - Enviar um email (V2)**
+3. Configure:
 
-| Campo | Valor (conteúdo dinâmico) |
-| --- | --- |
-| Para | `to` |
-| CC | `cc` |
-| Assunto | `subject` |
-| Corpo | `body` |
-| É HTML | **Sim** |
+| Campo    | Valor (conteudo dinamico) |
+| -------- | ------------------------- |
+| Para     | `to`                      |
+| CC       | `cc`                      |
+| Assunto  | `subject`                 |
+| Corpo    | `body`                    |
+| E HTML   | **Sim**                   |
 
-> 💡 Se preferir usar uma conta compartilhada (shared mailbox), use a ação **"Enviar um email de uma caixa de correio compartilhada (V2)"** e preencha o campo "Caixa de correio original" com o endereço.
+### Passo 4: Salvar e Copiar a URL
 
-### Passo 4: (Opcional) Adicionar Condição para CC
+1. Salve o flow
+2. Volte ao gatilho HTTP - a URL sera gerada
+3. Copie a URL (formato: `https://prod-XX.westus.logic.azure.com:443/workflows/...`)
+4. Cole no `.secrets_config.json` no campo `power_automate_url`
 
-Como o campo CC pode vir vazio, adicione uma condição:
+### Passo 5: Testar o Flow
 
-```
-Se   cc   é diferente de   (vazio)
-  → Enviar email COM cc
-Senão
-  → Enviar email SEM cc
-```
-
-Ou simplesmente ignore — o Outlook aceita CC vazio sem erro.
-
-### Passo 5: Salvar e Copiar a URL
-
-1. Clique em **Salvar**
-2. Volte ao gatilho HTTP — a **URL do HTTP POST** será gerada automaticamente
-3. Copie essa URL (formato: `https://prod-XX.westus.logic.azure.com:443/workflows/...`)
-4. Cole no arquivo `.secrets_config.json` no campo `power_automate_url`
-
-### Passo 6: Testar Manualmente
-
-Para validar o flow antes de usar no notebook, envie um POST manual:
+Voce pode testar com curl:
 
 ```bash
 curl -X POST "SUA_URL_AQUI" \
   -H "Content-Type: application/json" \
-  -d '{
-    "to": "seu.email@empresa.com",
-    "cc": "",
-    "subject": "Teste Power Automate",
-    "body": "<h1>Funcionou!</h1><p>Integra\u00e7\u00e3o OK.</p>"
-  }'
+  -d "{\"to\": \"seu@email.com\", \"cc\": \"\", \"subject\": \"Teste\", \"body\": \"<h1>OK</h1>\"}"
 ```
 
-Se receber status `202 Accepted`, o flow está pronto.
+Se retornar status 202, esta pronto.
 
 ### Diagrama do Flow
 
 ```
-┌──────────────────────────────────────────────┐
-│  Gatilho: Solicitação HTTP recebida        │
-│  Método: POST                              │
-│  Payload: { to, cc, subject, body }       │
-└───────────────────────┬──────────────────────┘
-                        │
-                        ▼
-┌──────────────────────────────────────────────┐
-│  (Opcional) Condição: CC não é vazio?     │
-└───────────────────────┬──────────────────────┘
-                        │
-                        ▼
-┌──────────────────────────────────────────────┐
-│  Ação: Enviar email (V2) - Outlook 365    │
-│  Para: to | CC: cc                        │
-│  Assunto: subject                         │
-│  Corpo: body (É HTML = Sim)               │
-└──────────────────────────────────────────────┘
++----------------------------------------------+
+|  Gatilho: Solicitacao HTTP recebida          |
+|  Metodo: POST                                |
+|  Payload: { to, cc, subject, body }          |
++----------------------+-----------------------+
+                       |
+                       v
++----------------------------------------------+
+|  Acao: Enviar email (V2) - Outlook 365       |
+|  Para: to | CC: cc                           |
+|  Assunto: subject                            |
+|  Corpo: body (E HTML = Sim)                  |
++----------------------------------------------+
 ```
 
-### Limites e Considerações
+### Limites
 
-| Item | Limite |
-| --- | --- |
-| Chamadas/minuto (plano gratuito) | 100 |
-| Chamadas/minuto (plano premium) | 600 |
-| Tamanho máx. do body | 100 MB (na prática, e-mails HTML ficam em ~50-200 KB) |
-| Timeout HTTP | 120 segundos |
+| Item                               | Limite     |
+| ---------------------------------- | ---------- |
+| Chamadas/minuto (plano gratuito)   | 100        |
+| Chamadas/minuto (plano premium)    | 600        |
+| Tamanho max. do body               | 100 MB     |
+| Timeout HTTP                       | 120s       |
 
-O notebook já trata erros 429 (rate limit), 502 e 503 com retry automático e delays progressivos.
+O script ja trata erros 429 (rate limit), 502 e 503 com retry automatico.
 
 ---
 
-## 🧪 Como Testar (Dados Fictícios)
+## Configuracao
 
-O repositório inclui um script que gera todos os dados necessários para teste, sem precisar de nenhum arquivo real.
+### .secrets_config.json
 
-### Passo 1: Executar o gerador de dados
+Copie o exemplo e preencha:
 
+```bash
+cp .secrets_config.json.example .secrets_config.json
 ```
-1. Abra o notebook `gerar_dados_teste.py` no Databricks
-2. Execute todas as células
-```
 
-Isso cria automaticamente:
-- `Entrada/apuracao_Q2_teste.xlsx` — planilha com 5 associados e 6 indicadores fictícios
-- `gestores_regionais_cc.xlsx` — mapeamento de 5 regionais com e-mails de exemplo
-- `.secrets_config.json` — configuração com dados placeholder
+Campos:
 
-### Passo 2: Executar o notebook principal
+| Campo                  | Descricao                              |
+| ---------------------- | -------------------------------------- |
+| power_automate_url     | URL do flow HTTP do Power Automate     |
+| assinatura_nome        | Nome na assinatura do e-mail           |
+| assinatura_cargo       | Cargo/departamento                     |
+| assinatura_email       | E-mail na assinatura                   |
+| email_gestor_excecoes  | E-mail para contestacoes               |
+| nome_gestor_excecoes   | Nome do gestor de excecoes             |
 
-Abra `email_metas_apuracao_variavel.py` e configure os widgets:
+### gestores_regionais_cc.xlsx
 
-| Widget | Valor |
-| --- | --- |
-| Período | **P04** |
-| Modo de Envio | **TESTE** |
-| E-mail de Teste | **seu-email@real.com** |
-| Data Retorno | Qualquer data futura |
-| Mês Pagamento | Qualquer mês |
+Crie baseado no CSV de exemplo (`gestores_regionais_cc_exemplo.csv`).
+Duas colunas: `Regional` e `Email_CC`.
 
-### Passo 3: Validar
+### Planilha de Apuracao (Entrada/)
 
-- **Sem Power Automate**: O Preview funciona normalmente. Você verá o e-mail HTML completo com dados fictícios.
-- **Com Power Automate**: Substitua a `power_automate_url` no `.secrets_config.json` pela URL real do seu flow. O e-mail será enviado ao endereço de teste.
+Requisitos do arquivo Excel:
+- Formato: `.xlsb` ou `.xlsx`
+- Aba: `RESULTADO VARIAVEL` (com acento: VARIAVEL)
+- Colunas: Associado, Email, Regional, Indicador (x2), metricas
+- Periodos identificados por P01-P13 no header
 
-### Associados Fictícios Gerados
+---
 
-| Nome | E-mail | Regional |
-| --- | --- | --- |
-| Ana Silva | ana.silva@exemplo.com | SUDESTE |
-| Carlos Souza | carlos.souza@exemplo.com | SUL |
-| Maria Santos | maria.santos@exemplo.com | NORTE |
-| Pedro Oliveira | pedro.oliveira@exemplo.com | NORDESTE |
-| Julia Costa | julia.costa@exemplo.com | CENTRO-OESTE |
+## Teste com Dados Ficticios
 
-## 📜 Licença
+O script `gerar_dados_teste_local.py` cria automaticamente:
 
-Projeto interno — uso restrito à organização.
+| Associado       | E-mail                        | Regional      |
+| --------------- | ----------------------------- | ------------- |
+| Ana Silva       | ana.silva@exemplo.com         | SUDESTE       |
+| Carlos Souza    | carlos.souza@exemplo.com      | SUL           |
+| Maria Santos    | maria.santos@exemplo.com      | NORTE         |
+| Pedro Oliveira  | pedro.oliveira@exemplo.com    | NORDESTE      |
+| Julia Costa     | julia.costa@exemplo.com       | CENTRO-OESTE  |
 
+Indicadores ficticios de Vendas (GSV) e Execucao (Sales Strike).
+
+---
+
+## Estrutura do E-mail
+
+Cada e-mail contem:
+
+1. **Tabela de resultados:**
+   - Indicador (categoria + detalhamento)
+   - Actual / Meta / % Atingimento
+   - Recuperacao (Vendas, Marca, Regional)
+   - % Variavel (resultado final - destaque em dourado)
+
+2. **Secao Quarter** (apenas em P03, P06, P09, P13):
+   - GSV Actual / FCST / Realizado x Plano
+   - Recuperacoes trimestrais
+
+3. **Rodape:**
+   - Prazo de contestacao
+   - Assinatura personalizada
+
+---
+
+## Seguranca
+
+- **Modo TESTE**: Todos os e-mails vao apenas para o endereco de teste
+- **Modo PRODUCAO**: Envia para destinatarios reais + CC gestor regional
+- **Secrets**: Dados sensiveis em `.secrets_config.json` (protegido pelo .gitignore)
+- **Retry**: 3 tentativas com delays progressivos (5s, 10s) em erros HTTP
+
+---
+
+## Manutencao
+
+| Tarefa              | Como fazer                                  |
+| ------------------- | ------------------------------------------- |
+| Novo periodo        | Automatico (basta ter dados na planilha)    |
+| Alterar template    | Edite `template_email.html`                 |
+| Atualizar regionais | Edite `gestores_regionais_cc.xlsx`          |
+| Mudar assinatura    | Edite `.secrets_config.json`                |
+
+---
+
+## Requisitos
+
+- Python 3.9+
+- Bibliotecas: pyxlsb, openpyxl, pandas, requests, numpy
+- Power Automate (para envio real de e-mails)
+
+---
+
+## Licenca
+
+Projeto interno - uso restrito a organizacao.

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Template Corporativo de Regras e Indicadores</title>
+    <style>
+        @page { size: A4 landscape; margin: 10mm; background-color: #ffffff; }
+        *, *::before, *::after { box-sizing: border-box; }
+        
+        html, body { 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            width: 100% !important; 
+            max-width: 100% !important;
+            height: 100% !important; 
+            background-color: #ffffff; 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            color: #333333; 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+            overflow-x: hidden;
+        }
+
+        .main-table { 
+            width: 100vw !important; 
+            max-width: 100% !important;
+            border-collapse: collapse !important; 
+            font-size: 9pt; 
+            table-layout: fixed; 
+            border: none !important; 
+            margin-top: 10px;
+        }
+        
+        .main-table th, .main-table td { 
+            padding: 5px 6px; 
+            text-align: center; 
+            vertical-align: middle; 
+            font-weight: bold; 
+            white-space: nowrap; 
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .no-border { border: none !important; background-color: #ffffff !important; }
+        .vertical-empty-cell { border: none !important; background-color: #ffffff !important; }
+
+        .rules-container-cell { border: none !important; background-color: #ffffff !important; padding: 0px !important; text-align: left !important; vertical-align: middle !important; }
+
+        .header-rules { 
+            display: block !important;
+            background-color: #E6A000 !important; 
+            color: #0000A0 !important; 
+            font-size: 16pt; 
+            text-align: center; 
+            padding: 11px 20px !important;
+            border: none !important; 
+            border-radius: 8px !important;
+            letter-spacing: 1px;
+            width: 95% !important; 
+            margin-top: -6px !important;
+        }
+
+        .p04-header { background-color: #FFCC5B !important; border: 1px solid #ffffff !important; color: #000000 !important; }
+        .payment-header { background-color: #00B050 !important; color: #ffffff !important; border: 1px solid #ffffff !important; }
+
+        .vertical-row { height: 110px; background-color: #ffffff !important; }
+        .vertical-text-cell { vertical-align: middle !important; background-color: #ffffff !important; border: none !important; border-right: 1px solid #d3d3d3 !important; padding: 5px 2px !important; }
+
+        .excel-style-cell {
+            display: inline-block;
+            font-size: 8.5pt;
+            line-height: 1.2;
+            color: #000000 !important;
+            text-align: center;
+            transform: rotate(-90deg);
+            white-space: nowrap;
+            width: 100%;
+        }
+
+        .blue-strip-row th { background-color: #000050 !important; color: #ffffff !important; height: 55px; border: 1px solid #ffffff !important; font-size: 9pt; }
+        .blue-strip-row th.total-variable-header { background-color: #00B050 !important; color: #ffffff !important; font-size: 9pt; border: 1px solid #ffffff !important; }
+
+        .data-row td { background-color: #ffffff !important; color: #333333 !important; height: 30px; border: 1px solid #d3d3d3 !important; font-weight: normal; }
+        .data-row .gray-bg { background-color: #7f7f7f !important; color: #ffffff !important; font-weight: bold; }
+        .payment-result-cell { background-color: #595959 !important; color: #e5a913 !important; font-weight: bold; border: 1px solid #d3d3d3 !important; }
+    </style>
+</head>
+<body>
+
+<p>Bom dia, {nome}! Tudo bem?</p>
+<p>Segue o % da variável referente ao {periodo}:</p>
+
+<table class="main-table">
+    <colgroup>
+        <col style="width: 13%;">
+        <col style="width: 13%;">
+        <col style="width: 14%;">
+        <col style="width: 7%;">
+        <col style="width: 7%;">
+        <col style="width: 8%;">
+        <col style="width: 8%;">
+        <col style="width: 7%;">
+        <col style="width: 7%;">
+        <col style="width: 8%;">
+        <col style="width: 8%;">
+        {quarter_colgroup}
+    </colgroup>
+
+    <thead>
+        <tr>
+            <th colspan="3" class="rules-container-cell">
+                <div class="header-rules">REGRAS</div>
+            </th>
+            <td class="p04-header">{periodo}</td>
+            <td class="p04-header">{periodo}</td>
+            <td class="p04-header">{periodo}</td>
+            <td class="p04-header">{periodo}</td>
+            <td class="p04-header">{periodo}</td>
+            <td class="p04-header">{periodo}</td>
+            <td class="p04-header">{periodo}</td>
+            <td class="p04-header">{periodo}</td>
+            {quarter_row1}
+        </tr>
+        <tr>
+            <td colspan="3" class="no-border"></td>
+            <td class="p04-header">Actual</td>
+            <td class="p04-header">Meta</td>
+            <td class="p04-header">% Ating Meta</td>
+            <td class="p04-header">%Repres.</td>
+            <td class="p04-header">Variável (%)</td>
+            <td class="p04-header">Const. Marca</td>
+            <td class="p04-header">Ating Regional</td>
+            <td class="payment-header">Pagamento</td>
+            {quarter_row2}
+        </tr>
+        <tr class="vertical-row">
+            <td colspan="3" class="no-border"></td>
+            <td class="vertical-text-cell">
+                <div class="excel-style-cell">GSV<br>ACTUAL</div>
+            </td>
+            <td class="vertical-text-cell">
+                <div class="excel-style-cell">GSV<br>FCST</div>
+            </td>
+            <td class="vertical-text-cell">
+                <div class="excel-style-cell">Realizado<br>X<br>Plano</div>
+            </td>
+            <td colspan="5" class="vertical-empty-cell"></td>
+            {quarter_row3}
+        </tr>
+        <tr class="blue-strip-row">
+            <th>Indicador</th>
+            <th>Associado</th>
+            <th>Indicador</th>
+            <th>Actual</th>
+            <th>TGT</th>
+            <th>% Ating Meta</th>
+            <th>%Repres.</th>
+            <th>Variável (%)</th>
+            <th>Const. Marca</th>
+            <th>Atingimento<br>Regional</th>
+            <th class="total-variable-header">TOTAL VARIÁVEL<br>ATINGIMENTO<br>INDIVIDUAL</th>
+            {quarter_row4}
+        </tr>
+    </thead>
+
+    <tbody>
+        {linhas}
+    </tbody>
+</table>
+
+<script>
+    function travarLargura() {
+        const elementos = [
+            document.documentElement,
+            document.body,
+            document.querySelector('.main-table')
+        ];
+        elementos.forEach(el => {
+            if (el) {
+                el.style.setProperty('width', '100%', 'important');
+                el.style.setProperty('max-width', '100%', 'important');
+            }
+        });
+    }
+    window.addEventListener('DOMContentLoaded', travarLargura);
+    window.addEventListener('load', travarLargura);
+    let contador = 0;
+    const travarLoop = setInterval(() => {
+        travarLargura();
+        contador++;
+        if (contador > 25) clearInterval(travarLoop);
+    }, 100);
+</script>
+
+</body>
+</html>

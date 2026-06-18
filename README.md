@@ -36,17 +36,18 @@ Este projeto automatiza o processo de comunicação dos resultados de remuneraç
 ## 📁 Estrutura de Pastas
 
 ```
-Email Variavel/
-├── Email Metas Apuracao Variavel.py   # Notebook principal
+email-metas-apuracao-variavel/
+├── email_metas_apuracao_variavel.py   # Notebook principal (Databricks)
 ├── template_email.html                 # Template HTML do corpo do e-mail
-├── baixados.png                        # Imagem/banner do cabeçalho do e-mail
-├── gestores_regionais_cc.xlsx          # Mapeamento Regional → Email CC
-├── .secrets_config.json                # Configurações sensíveis (NÃO versionar)
+├── gestores_regionais_cc_exemplo.csv   # Exemplo: mapeamento Regional → Email CC
+├── .secrets_config.json.example        # Exemplo: configurações sensíveis
+├── requirements.txt                    # Dependências Python
+├── .gitignore                          # Arquivos ignorados pelo Git
+├── README.md                           # Este arquivo
 ├── Entrada/                            # Pasta para upload dos arquivos Excel
-│   └── <arquivo_apuracao>.xlsb         # Planilha de resultados variável
-├── Saida/                              # Pasta de saída gerada automaticamente
-│   └── saida.json                      # JSON com todos os e-mails gerados
-└── README.md                           # Este arquivo
+│   └── <arquivo_apuracao>.xlsb         # Planilha de resultados (NÃO versionar)
+└── Saida/                              # Pasta de saída gerada automaticamente
+    └── saida.json                      # JSON com e-mails gerados (NÃO versionar)
 ```
 
 ## ⚙️ Pré-requisitos
@@ -58,55 +59,51 @@ Email Variavel/
 
 ## 🔧 Configuração
 
-### 1. Arquivo de Segredos (`.secrets_config.json`)
+### 1. Arquivo de Segredos
 
-Crie o arquivo `.secrets_config.json` na raiz do projeto com a seguinte estrutura:
+Copie `.secrets_config.json.example` para `.secrets_config.json` e preencha com seus dados:
 
-```json
-{
-  "power_automate_url": "https://prod-XX.westus.logic.azure.com:443/workflows/...",
-  "assinatura_nome": "Nome do Remetente",
-  "assinatura_cargo": "Cargo / Departamento",
-  "assinatura_email": "remetente@empresa.com",
-  "email_gestor_excecoes": "gestor@empresa.com",
-  "nome_gestor_excecoes": "Nome do Gestor"
-}
+```bash
+cp .secrets_config.json.example .secrets_config.json
 ```
 
-> ⚠️ **IMPORTANTE**: Este arquivo contém dados sensíveis. Adicione ao `.gitignore`.
+Campos:
+- `power_automate_url` — URL do flow HTTP do Power Automate
+- `assinatura_nome` — Nome exibido na assinatura do e-mail
+- `assinatura_cargo` — Cargo/departamento na assinatura
+- `assinatura_email` — E-mail na assinatura
+- `email_gestor_excecoes` — E-mail do gestor para contestações
+- `nome_gestor_excecoes` — Nome do gestor de exceções
 
-### 2. Mapeamento de Gestores Regionais (`gestores_regionais_cc.xlsx`)
+> ⚠️ **IMPORTANTE**: Este arquivo contém dados sensíveis. Nunca versione no Git.
 
-Planilha com duas colunas:
+### 2. Mapeamento de Gestores Regionais
 
-| Regional | Email_CC |
+Crie `gestores_regionais_cc.xlsx` (formato Excel) baseado no exemplo CSV fornecido.
+Duas colunas: `Regional` e `Email_CC`.
+
+### 3. Template HTML
+
+O arquivo `template_email.html` contém o layout do e-mail com placeholders:
+
+| Placeholder | Descrição |
 | --- | --- |
-| NORTE | gestor.norte@empresa.com |
-| SUL | gestor.sul@empresa.com |
-| SUDESTE | gestor.sudeste@empresa.com |
+| `{nome}` | Primeiro nome do associado |
+| `{periodo}` | Período atual (ex: P04) |
+| `{linhas}` | Linhas da tabela de resultados |
+| `{quarter_colgroup}` | Colunas do quarter (quando aplicável) |
+| `{quarter_row1}` a `{quarter_row4}` | Headers do quarter |
 
-### 3. Template HTML (`template_email.html`)
+### 4. Planilha de Apuração
 
-Template com placeholders que são substituídos dinamicamente:
-
-- `{nome}` → Primeiro nome do associado
-- `{periodo}` → Período atual (ex: P04)
-- `{linhas}` → Linhas da tabela de resultados
-- `{quarter_colgroup}` → Colunas do quarter (quando aplicável)
-- `{quarter_row1}` a `{quarter_row4}` → Headers do quarter
-
-### 4. Planilha de Apuração (Entrada)
-
-Arquivo `.xlsb` ou `.xlsx` contendo:
+Coloque o arquivo `.xlsb` na pasta `Entrada/`. Requisitos:
 - Aba: `RESULTADO VARIÁVEL`
-- Colunas esperadas: `Associado`, `Email`, `Regional`, `Indicador` (x2), colunas de métricas
-- Linhas de período identificadas por `P01`–`P13` no header
+- Colunas: `Associado`, `Email`, `Regional`, `Indicador` (x2), métricas
+- Períodos identificados por `P01`–`P13` no header
 
 ## 🚀 Como Usar
 
 ### Passo 1: Configurar Widgets
-
-Ao executar a primeira célula de widgets, configure:
 
 | Widget | Descrição | Exemplo |
 | --- | --- | --- |
@@ -119,106 +116,74 @@ Ao executar a primeira célula de widgets, configure:
 
 ### Passo 2: Upload do Arquivo
 
-Coloque o arquivo `.xlsb` na pasta `Entrada/`. O notebook detecta automaticamente o arquivo mais recente e tenta associar ao quarter correto pelo nome do arquivo.
+Coloque o `.xlsb` na pasta `Entrada/`. O notebook detecta automaticamente o arquivo pelo período/quarter.
 
 ### Passo 3: Processamento
 
-A célula de processamento:
+Execute a célula de processamento. Ela:
 1. Localiza o arquivo correto baseado no período/quarter
 2. Lê a aba `RESULTADO VARIÁVEL`
 3. Identifica headers e colunas de métricas
-4. Popula o widget de associados disponíveis
+4. Popula o widget de associados
 
 ### Passo 4: Preview e Envio
 
 O dashboard interativo oferece:
-- **Aba Preview**: Visualização completa do e-mail (HTML renderizado)
-- **Aba Enviar**: Botão de envio em lote com barra de progresso
+- **Aba Preview**: Visualização do e-mail renderizado
+- **Aba Enviar**: Envio em lote com barra de progresso e retry automático
 
 ## 📊 Estrutura do E-mail
 
 Cada e-mail contém:
 
-1. **Banner/Imagem** de cabeçalho
-2. **Tabela de resultados** com colunas:
-   - Indicador (categoria)
-   - Associado
-   - Indicador (detalhamento)
+1. **Tabela de resultados** com colunas:
+   - Indicador (categoria + detalhamento)
    - Actual / Meta / % Atingimento
    - Recuperação (Vendas, Marca, Regional)
    - % Variável (resultado final)
-3. **Seção Quarter** (apenas em P03, P06, P09, P13):
-   - GSV Actual / FCST
-   - Realizado × Plano
+2. **Seção Quarter** (apenas em P03, P06, P09, P13):
+   - GSV Actual / FCST / Realizado × Plano
    - Recuperações trimestrais
-   - Pagamento acumulado
-4. **Rodapé** com prazo de contestação e assinatura
+3. **Rodapé** com prazo de contestação e assinatura
 
 ## 🔒 Segurança
 
-- **Modo TESTE**: Todos os e-mails são direcionados ao endereço de teste configurado
-- **Modo PRODUÇÃO**: E-mails enviados aos destinatários reais com CC ao gestor regional
-- **Compressão**: Payloads são comprimidos (zlib) e codificados em Base64 antes do envio
-- **Segredos**: URL do Power Automate e dados de assinatura armazenados em arquivo local não versionado
+- **Modo TESTE**: E-mails direcionados ao endereço de teste
+- **Modo PRODUÇÃO**: E-mails aos destinatários reais + CC gestor regional
+- **Compressão**: Payloads comprimidos (zlib + Base64) antes do envio
+- **Segredos**: Dados sensíveis em `.secrets_config.json` (não versionado)
 
 ## 🔄 Fluxo de Envio
 
-1. Payloads JSON são comprimidos com `zlib` e codificados em Base64
-2. JavaScript no dashboard decodifica e descomprime no browser
-3. Envio sequencial via `fetch()` para o endpoint do Power Automate
-4. Retry automático (até 3 tentativas) em caso de erro 502/503/429
+1. Payloads JSON comprimidos com `zlib` e codificados em Base64
+2. JavaScript no dashboard decodifica no browser
+3. Envio sequencial via `fetch()` ao Power Automate
+4. Retry automático (3 tentativas) em erros 502/503/429
 5. Delays progressivos entre retries (5s, 10s)
-6. Botão "Parar" para interromper envio em andamento
+6. Botão "Parar" para interromper envio
 
-## 📝 Lógica de Detecção de Arquivo
+## 📝 Detecção Automática de Arquivo
 
-O notebook utiliza a seguinte prioridade para selecionar o arquivo Excel:
+Prioridade de seleção:
+1. Nome do arquivo contém o quarter (Q1, Q2, Q3, Q4)
+2. Conteúdo da aba contém o período solicitado
+3. Arquivo mais recente (fallback)
 
-1. Busca arquivo cujo nome contenha o quarter correspondente (Q1, Q2, Q3, Q4)
-2. Se não encontrar, abre cada `.xlsb` e verifica se a aba contém o período solicitado
-3. Em último caso, utiliza o arquivo mais recente
+## 🎨 Formatação Visual
 
-## 🎨 Formatação Condicional
-
-- **Linhas em negrito**: Indicadores totalizadores ("Vendas - Sell In GSV - TOTAL", "Execução - Sales Strike - TOTAL")
-- **Célula de resultado**: Fundo cinza escuro (#595959) com texto dourado (#e5a913)
-- **Headers Quarter**: Fundo amarelo (#FFCC5B) para métricas, verde (#00B050) para pagamento
+- **Linhas em negrito**: Indicadores totalizadores
+- **Célula de resultado**: Fundo cinza (#595959) + texto dourado (#e5a913)
+- **Headers Quarter**: Amarelo (#FFCC5B) para métricas, verde (#00B050) para pagamento
+- **Faixa azul**: Header principal (#000050)
 
 ## 🛠️ Manutenção
 
-### Adicionar novo período
-Os períodos P01–P13 são gerados dinamicamente. Basta que a planilha contenha os dados.
-
-### Alterar template
-Edite o arquivo `template_email.html`. Os placeholders `{...}` são substituídos em runtime.
-
-### Atualizar gestores regionais
-Edite o arquivo `gestores_regionais_cc.xlsx` com os novos mapeamentos.
-
-## 📄 .gitignore Recomendado
-
-```gitignore
-# Segredos e configurações locais
-.secrets_config.json
-
-# Arquivos de dados (Excel)
-Entrada/
-Saida/
-
-# Imagens locais
-*.png
-
-# Databricks
-.databricks/
-__pycache__/
-```
-
-## 📌 Notas
-
-- O notebook foi desenvolvido para execução no Databricks com cluster pessoal (single-user)
-- A integração com Power Automate requer que o flow esteja ativo e acessível
-- Em períodos trimestrais (P03, P06, P09, P13), colunas adicionais de quarter são automaticamente incluídas
-- O widget de associados é populado dinamicamente a partir dos dados da planilha
+| Tarefa | Como fazer |
+| --- | --- |
+| Novo período | Automático — basta ter os dados na planilha |
+| Alterar template | Edite `template_email.html` |
+| Atualizar regionais | Edite `gestores_regionais_cc.xlsx` |
+| Mudar assinatura | Edite `.secrets_config.json` |
 
 ## 📜 Licença
 
